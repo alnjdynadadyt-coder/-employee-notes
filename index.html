@@ -40,7 +40,6 @@
                 <i class="fa-solid fa-clipboard-user"></i> نظام ملاحظات الموظفين
             </h1>
             <div class="flex items-center gap-2">
-                <!-- أزرار النسخ الاحتياطي والاستيراد -->
                 <button onclick="exportData()" class="bg-indigo-800 hover:bg-indigo-900 text-xs px-3 py-2 rounded-lg transition flex items-center gap-1.5" title="تصدير النسخة الاحتياطية">
                     <i class="fa-solid fa-download"></i> تصدير البيانات
                 </button>
@@ -61,7 +60,6 @@
                 <i class="fa-solid fa-users text-indigo-600"></i> قائمة الموظفين
             </h2>
             
-            <!-- نموذج إضافة موظف -->
             <form id="add-employee-form" class="mb-4 space-y-2">
                 <input type="text" id="employee-name" placeholder="اسم الموظف..." required
                     class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -74,16 +72,12 @@
                 </div>
             </form>
 
-            <!-- بحث عن موظف -->
             <div class="mb-3">
                 <input type="text" id="search-employee" placeholder="بحث بالاسم أو العنوان الوظيفي..." 
                     class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
 
-            <!-- قائمة أسماء الموظفين -->
-            <div id="employees-list" class="overflow-y-auto flex-grow divide-y divide-slate-100">
-                <!-- يتم تعبئتها عبر الجافاسكريبت -->
-            </div>
+            <div id="employees-list" class="overflow-y-auto flex-grow divide-y divide-slate-100"></div>
         </div>
 
         <!-- القسم الأيسر: تفاصيل الموظف والملاحظات -->
@@ -94,8 +88,8 @@
             </div>
 
             <div id="employee-details" class="hidden flex flex-col flex-grow">
-                <!-- رأس تفاصيل الموظف -->
-                <div class="flex flex-wrap justify-between items-center border-b border-slate-200 pb-4 mb-4 no-print">
+                <!-- رأس تفاصيل الموظف وأزرار الطباعة -->
+                <div class="flex flex-wrap justify-between items-center border-b border-slate-200 pb-4 mb-4 no-print gap-3">
                     <div>
                         <div class="flex items-center gap-3">
                             <h2 id="selected-employee-title" class="text-2xl font-bold text-indigo-900">اسم الموظف</h2>
@@ -105,32 +99,61 @@
                         </div>
                         <p id="selected-employee-job" class="text-sm text-slate-500 mt-1">العنوان الوظيفي</p>
                     </div>
-                    <div class="flex gap-2 mt-2 sm:mt-0">
-                        <button onclick="window.print()" class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
-                            <i class="fa-solid fa-print ml-1"></i> طباعة السجل
+                    
+                    <!-- إعدادات الطباعة حسب النوع -->
+                    <div class="flex items-center gap-2">
+                        <select id="print-filter-type" class="border border-slate-300 rounded-lg px-2 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-slate-500">
+                            <option value="all">طباعة كل الملاحظات</option>
+                            <option value="administrative">📌 ملاحظات إدارية فقط</option>
+                            <option value="achievement">🌟 إنجازات فقط</option>
+                            <option value="warning">⚠️ تنبيهات ومخالفات فقط</option>
+                        </select>
+                        <button onclick="triggerPrint()" class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                            <i class="fa-solid fa-print ml-1"></i> طباعة
                         </button>
                     </div>
                 </div>
 
-                <!-- نموذج إضافة ملاحظة جديدة -->
+                <!-- نموذج إضافة ملاحظة جديدة مع الملاحظات السريعة -->
                 <form id="add-note-form" class="mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200 no-print space-y-3">
                     <div class="flex flex-wrap justify-between items-center gap-2">
-                        <!-- تصنيف الملاحظة بلون وتصميم -->
                         <div class="flex items-center gap-2">
-                            <label class="text-xs font-bold text-slate-700">تصنيف الملاحظة:</label>
-                            <select id="note-category" class="border border-slate-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                            <label class="text-xs font-bold text-slate-700">التصنيف:</label>
+                            <select id="note-category" class="border border-slate-300 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                 <option value="administrative">📌 ملاحظة إدارية</option>
                                 <option value="achievement">🌟 إنجاز</option>
                                 <option value="warning">⚠️ تنبيه</option>
                             </select>
                         </div>
-                        <!-- زر الكتابة الصوتية -->
                         <button type="button" id="mic-btn" onclick="toggleSpeechRecognition()" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-3 py-1 rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
                             <i class="fa-solid fa-microphone"></i> <span id="mic-text">الكتابة الصوتية</span>
                         </button>
                     </div>
-                    <textarea id="note-text" rows="3" placeholder="اكتب تفاصيل الملاحظة هنا أو استخدم الكتابة الصوتية..." required
+
+                    <!-- قائمة الملاحظات السريعة -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">ملاحظات سريعة جاهزة (اضغط لإضافتها):</label>
+                        <div class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 bg-white border border-slate-200 rounded-lg">
+                            <button type="button" onclick="setQuickNote('غياب بدون عذر', 'warning')" class="text-xs bg-slate-100 hover:bg-red-50 hover:text-red-700 border border-slate-200 px-2.5 py-1 rounded-md transition">غياب بدون عذر</button>
+                            <button type="button" onclick="setQuickNote('تأخير عن الدوام الرسمي', 'warning')" class="text-xs bg-slate-100 hover:bg-red-50 hover:text-red-700 border border-slate-200 px-2.5 py-1 rounded-md transition">تأخير عن الدوام الرسمي</button>
+                            <button type="button" onclick="setQuickNote('مجاز', 'administrative')" class="text-xs bg-slate-100 hover:bg-blue-50 hover:text-blue-700 border border-slate-200 px-2.5 py-1 rounded-md transition">مجاز</button>
+                            <button type="button" onclick="setQuickNote('عدم الألتزام بالمراقبة اليومية', 'warning')" class="text-xs bg-slate-100 hover:bg-red-50 hover:text-red-700 border border-slate-200 px-2.5 py-1 rounded-md transition">عدم الألتزام بالمراقبة اليومية</button>
+                            <button type="button" onclick="setQuickNote('عدم الذهاب إلى الدرس', 'warning')" class="text-xs bg-slate-100 hover:bg-red-50 hover:text-red-700 border border-slate-200 px-2.5 py-1 rounded-md transition">عدم الذهاب إلى الدرس</button>
+                            <button type="button" onclick="setQuickNote('الخروج بدون علم الإدارة', 'warning')" class="text-xs bg-slate-100 hover:bg-red-50 hover:text-red-700 border border-slate-200 px-2.5 py-1 rounded-md transition">الخروج بدون علم الإدارة</button>
+                            <button type="button" onclick="setQuickNote('لم يوقع في سجل الحضور', 'warning')" class="text-xs bg-slate-100 hover:bg-red-50 hover:text-red-700 border border-slate-200 px-2.5 py-1 rounded-md transition">لم يوقع في سجل الحضور</button>
+                            <button type="button" onclick="setQuickNote('عدم التسجيل في برنامج الحضور', 'warning')" class="text-xs bg-slate-100 hover:bg-red-50 hover:text-red-700 border border-slate-200 px-2.5 py-1 rounded-md transition">عدم التسجيل في برنامج الحضور</button>
+                            <button type="button" onclick="setQuickNote('عدم تصحيح الأوراق', 'warning')" class="text-xs bg-slate-100 hover:bg-red-50 hover:text-red-700 border border-slate-200 px-2.5 py-1 rounded-md transition">عدم تصحيح الأوراق</button>
+                            <button type="button" onclick="setQuickNote('لم يسلم الدرجات الشهرية الى الطلاب', 'warning')" class="text-xs bg-slate-100 hover:bg-red-50 hover:text-red-700 border border-slate-200 px-2.5 py-1 rounded-md transition">لم يسلم الدرجات الشهرية الى الطلاب</button>
+                            <button type="button" onclick="setQuickNote('لم يسلم الدرجات إلى الادارة', 'warning')" class="text-xs bg-slate-100 hover:bg-red-50 hover:text-red-700 border border-slate-200 px-2.5 py-1 rounded-md transition">لم يسلم الدرجات إلى الادارة</button>
+                            <button type="button" onclick="setQuickNote('لم يقوم بمهامه', 'warning')" class="text-xs bg-slate-100 hover:bg-red-50 hover:text-red-700 border border-slate-200 px-2.5 py-1 rounded-md transition">لم يقوم بمهامه</button>
+                            <button type="button" onclick="setQuickNote('عدم الألتزام بالتعليمات الإدارية', 'warning')" class="text-xs bg-slate-100 hover:bg-red-50 hover:text-red-700 border border-slate-200 px-2.5 py-1 rounded-md transition">عدم الألتزام بالتعليمات الإدارية</button>
+                            <button type="button" onclick="setQuickNote('', 'administrative')" class="text-xs bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1 rounded-md transition font-bold">أخرى (مخصص)</button>
+                        </div>
+                    </div>
+
+                    <textarea id="note-text" rows="3" placeholder="اكتب تفاصيل الملاحظة هنا أو اختر ملاحظة سريعة..." required
                         class="w-full border border-slate-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 leading-relaxed bg-white"></textarea>
+                    
                     <div class="flex justify-end">
                         <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-semibold transition">
                             <i class="fa-solid fa-save ml-1"></i> حفظ الملاحظة
@@ -143,21 +166,20 @@
                     <div class="hidden print:block mb-6">
                         <h2 class="text-xl font-bold">سجل ملاحظات الموظف: <span id="print-employee-name"></span></h2>
                         <p class="text-sm text-gray-600">العنوان الوظيفي: <span id="print-employee-job"></span></p>
+                        <p class="text-sm text-gray-600">نوع التقرير: <span id="print-type-label">كل الملاحظات</span></p>
                         <p class="text-sm text-gray-600">تاريخ الطباعة: <span id="print-date"></span></p>
                         <hr class="my-2">
                     </div>
 
                     <h3 class="text-md font-bold text-slate-700 mb-3 no-print">الملاحظات المسجلة:</h3>
-                    <div id="notes-list" class="space-y-3 overflow-y-auto max-h-[45vh]">
-                        <!-- يتم تعبئتها عبر الجافاسكريبت -->
-                    </div>
+                    <div id="notes-list" class="space-y-3 overflow-y-auto max-h-[45vh]"></div>
                 </div>
             </div>
         </div>
 
     </main>
 
-    <!-- نافذة منبثقة لتعديل بيانات الموظف -->
+    <!-- نافذة تعديل بيانات الموظف -->
     <div id="edit-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50 no-print">
         <div class="bg-white p-6 rounded-xl w-full max-w-md shadow-xl">
             <h3 class="text-lg font-bold text-slate-800 mb-4">تعديل بيانات الموظف</h3>
@@ -178,28 +200,22 @@
         </div>
     </div>
 
-    <!-- تذييل الصفحة -->
     <footer class="bg-white border-t border-slate-200 py-4 text-center text-sm text-slate-500 no-print">
         <p>نظام إدارة ومتابعة الموظفين &copy; 2026 - متوافق مع الايباد و GitHub Pages</p>
     </footer>
 
-    <!-- سكود البرمجة بلغة جافاسكريبت -->
     <script>
-        let data = JSON.parse(localStorage.getItem('employee_notes_system')) || {
-            employees: []
-        };
-
+        let data = JSON.parse(localStorage.getItem('employee_notes_system')) || { employees: [] };
         let currentEmployeeId = null;
         let recognition = null;
         let isRecording = false;
 
-        // إعدادیة الكتابة الصوتية مع حل مشكلة التكرار (الاعتماد على النتائج النهائية فقط)
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRecognition();
             recognition.lang = 'ar-SA';
-            recognition.continuous = false; // تعيينه كـ false يمنع الاستماع المستمر المسبب للتكرار المزعج
-            recognition.interimResults = false; // استقبال النص النهائي فقط
+            recognition.continuous = false;
+            recognition.interimResults = false;
 
             recognition.onresult = function(event) {
                 const transcript = event.results[0][0].transcript;
@@ -207,22 +223,15 @@
                 noteInput.value += (noteInput.value ? ' ' : '') + transcript;
             };
 
-            recognition.onerror = function(event) {
-                console.error("خطأ في التعرف على الصوت", event.error);
-                stopRecognition();
-            };
-
-            recognition.onend = function() {
-                stopRecognition();
-            };
+            recognition.onerror = function(event) { stopRecognition(); };
+            recognition.onend = function() { stopRecognition(); };
         }
 
         function toggleSpeechRecognition() {
             if (!recognition) {
-                alert('متصفحك لا يدعم ميزة الكتابة الصوتية، يرجى استخدام متصفح حديث مثل Safari أو Chrome.');
+                alert('متصفحك لا يدعم ميزة الكتابة الصوتية، يرجى استخدام Safari أو Chrome.');
                 return;
             }
-
             if (isRecording) {
                 recognition.stop();
             } else {
@@ -232,10 +241,8 @@
                     const micBtn = document.getElementById('mic-btn');
                     micBtn.classList.remove('bg-amber-100', 'text-amber-800');
                     micBtn.classList.add('bg-red-600', 'text-white', 'animate-pulse');
-                    document.getElementById('mic-text').innerText = 'جارٍ الاستماع (تحدث الآن)...';
-                } catch(err) {
-                    console.log(err);
-                }
+                    document.getElementById('mic-text').innerText = 'جارٍ الاستماع...';
+                } catch(err) { console.log(err); }
             }
         }
 
@@ -249,11 +256,16 @@
             }
         }
 
+        // اختيار ملاحظة سريعة
+        function setQuickNote(text, category) {
+            document.getElementById('note-text').value = text;
+            document.getElementById('note-category').value = category;
+        }
+
         function saveData() {
             localStorage.setItem('employee_notes_system', JSON.stringify(data));
         }
 
-        // تصدير البيانات كملف JSON
         function exportData() {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
             const downloadAnchor = document.createElement('a');
@@ -264,7 +276,6 @@
             downloadAnchor.remove();
         }
 
-        // استيراد البيانات من ملف JSON
         function importData(event) {
             const fileReader = new FileReader();
             if (event.target.files[0]) {
@@ -276,21 +287,14 @@
                             data = importedData;
                             saveData();
                             renderEmployees();
-                            if (currentEmployeeId) {
-                                selectEmployee(currentEmployeeId);
-                            }
+                            if (currentEmployeeId) selectEmployee(currentEmployeeId);
                             alert('تم استيراد البيانات بنجاح!');
-                        } else {
-                            alert('ملف النسخة الاحتياطية غير صالح.');
-                        }
-                    } catch (error) {
-                        alert('حدث خطأ أثناء قراءة الملف.');
-                    }
+                        } else { alert('ملف النسخة الاحتياطية غير صالح.'); }
+                    } catch (error) { alert('حدث خطأ أثناء قراءة الملف.'); }
                 };
             }
         }
 
-        // تنسيق التاريخ الرقمي (مثال: 2026/8/10)
         function getNumericDate(dateObj = new Date()) {
             const year = dateObj.getFullYear();
             const month = dateObj.getMonth() + 1;
@@ -299,7 +303,6 @@
             return `${year}/${month}/${day} - ${timeStr}`;
         }
 
-        // عرض قائمة الموظفين
         function renderEmployees(filter = '') {
             const listContainer = document.getElementById('employees-list');
             listContainer.innerHTML = '';
@@ -365,8 +368,6 @@
 
             sortedNotes.forEach((note, index) => {
                 const actualIndex = employee.notes.length - 1 - index;
-                
-                // تحديد التصنيف والشكل اللوني
                 let catBadge = '';
                 if (note.category === 'achievement') {
                     catBadge = '<span class="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold">🌟 إنجاز</span>';
@@ -377,7 +378,7 @@
                 }
 
                 const card = document.createElement('div');
-                card.className = 'bg-slate-50 border border-slate-200 p-4 rounded-xl relative';
+                card.className = `bg-slate-50 border border-slate-200 p-4 rounded-xl relative note-item-${note.category}`;
                 card.innerHTML = `
                     <div class="flex justify-between items-start mb-2 flex-wrap gap-2">
                         <div class="flex items-center gap-2">
@@ -396,24 +397,58 @@
             });
         }
 
-        // إضافة موظف جديد
+        // تنفيذ الطباعة بناءً على الفلتر المختار
+        function triggerPrint() {
+            const filterVal = document.getElementById('print-filter-type').value;
+            const filterTextMap = {
+                'all': 'كل الملاحظات',
+                'administrative': 'ملاحظات إدارية فقط',
+                'achievement': 'إنجازات فقط',
+                'warning': 'تنبيهات ومخالفات فقط'
+            };
+            document.getElementById('print-type-label').innerText = filterTextMap[filterVal];
+
+            const employee = data.employees.find(emp => emp.id === currentEmployeeId);
+            if (employee) {
+                const notesContainer = document.getElementById('notes-list');
+                notesContainer.innerHTML = '';
+                
+                const filteredNotes = filterVal === 'all' ? employee.notes : employee.notes.filter(n => n.category === filterVal);
+
+                if (filteredNotes.length === 0) {
+                    notesContainer.innerHTML = '<p class="text-center text-slate-400 py-4 text-sm">لا توجد ملاحظات مطابقة لتلك الفئة.</p>';
+                } else {
+                    const sortedNotes = [...filteredNotes].reverse();
+                    sortedNotes.forEach((note) => {
+                        let catBadge = note.category === 'achievement' ? '🌟 إنجاز' : (note.category === 'warning' ? '⚠️ تنبيه' : '📌 ملاحظة إدارية');
+                        const card = document.createElement('div');
+                        card.className = 'bg-slate-50 border border-slate-200 p-4 rounded-xl mb-3';
+                        card.innerHTML = `
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-xs font-semibold">${catBadge} - ${note.date}</span>
+                            </div>
+                            <p class="text-slate-700 text-sm whitespace-pre-line">${note.text}</p>
+                        `;
+                        notesContainer.appendChild(card);
+                    });
+                }
+            }
+
+            window.print();
+            
+            // إعادة عرض السجل كاملاً بعد الطباعة
+            if (employee) renderNotes(employee);
+        }
+
         document.getElementById('add-employee-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const nameInput = document.getElementById('employee-name');
             const jobInput = document.getElementById('employee-title-job');
-            
             const name = nameInput.value.trim();
             const jobTitle = jobInput.value.trim();
-            
             if (!name) return;
 
-            const newEmployee = {
-                id: Date.now(),
-                name: name,
-                jobTitle: jobTitle,
-                notes: []
-            };
-
+            const newEmployee = { id: Date.now(), name: name, jobTitle: jobTitle, notes: [] };
             data.employees.push(newEmployee);
             saveData();
             nameInput.value = '';
@@ -422,7 +457,6 @@
             selectEmployee(newEmployee.id);
         });
 
-        // إضافة ملاحظة مع التصنيف
         document.getElementById('add-note-form').addEventListener('submit', function(e) {
             e.preventDefault();
             if (!currentEmployeeId) return;
@@ -434,12 +468,7 @@
 
             const employee = data.employees.find(emp => emp.id === currentEmployeeId);
             if (employee) {
-                employee.notes.push({
-                    text: text,
-                    category: categoryInput.value,
-                    date: getNumericDate()
-                });
-
+                employee.notes.push({ text: text, category: categoryInput.value, date: getNumericDate() });
                 saveData();
                 noteTextInput.value = '';
                 renderNotes(employee);
@@ -447,28 +476,22 @@
             }
         });
 
-        // تعديل بيانات الموظف
         function openEditEmployeeModal() {
             const employee = data.employees.find(emp => emp.id === currentEmployeeId);
             if (!employee) return;
-
             document.getElementById('edit-name').value = employee.name;
             document.getElementById('edit-job').value = employee.jobTitle || '';
             document.getElementById('edit-modal').classList.remove('hidden');
         }
 
-        function closeEditEmployeeModal() {
-            document.getElementById('edit-modal').classList.add('hidden');
-        }
+        function closeEditEmployeeModal() { document.getElementById('edit-modal').classList.add('hidden'); }
 
         document.getElementById('edit-employee-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const employee = data.employees.find(emp => emp.id === currentEmployeeId);
             if (!employee) return;
-
             employee.name = document.getElementById('edit-name').value.trim();
             employee.jobTitle = document.getElementById('edit-job').value.trim();
-
             saveData();
             closeEditEmployeeModal();
             selectEmployee(currentEmployeeId);
@@ -501,9 +524,7 @@
             }
         }
 
-        document.getElementById('search-employee').addEventListener('input', function(e) {
-            renderEmployees(e.target.value);
-        });
+        document.getElementById('search-employee').addEventListener('input', function(e) { renderEmployees(e.target.value); });
 
         renderEmployees();
     </script>
