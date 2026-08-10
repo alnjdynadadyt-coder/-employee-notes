@@ -40,7 +40,7 @@
                 <i class="fa-solid fa-clipboard-user"></i> نظام ملاحظات الموظفين
             </h1>
             <div class="text-sm bg-indigo-800 px-3 py-1.5 rounded-lg">
-                <i class="fa-solid fa-cloud-arrow-up ml-1"></i> جاهز للنشر على GitHub Pages
+                <i class="fa-solid fa-cloud-arrow-up ml-1"></i> متوافق مع GitHub Pages & iPad
             </div>
         </div>
     </header>
@@ -55,17 +55,21 @@
             </h2>
             
             <!-- نموذج إضافة موظف -->
-            <form id="add-employee-form" class="mb-4 flex gap-2">
-                <input type="text" id="employee-name" placeholder="اسم الموظف الجديد..." required
-                    class="flex-grow border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
-                    <i class="fa-solid fa-plus"></i> إضافة
-                </button>
+            <form id="add-employee-form" class="mb-4 space-y-2">
+                <input type="text" id="employee-name" placeholder="اسم الموظف..." required
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <div class="flex gap-2">
+                    <input type="text" id="employee-title-job" placeholder="العنوان الوظيفي..." required
+                        class="flex-grow border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                        <i class="fa-solid fa-plus"></i> إضافة
+                    </button>
+                </div>
             </form>
 
-            <!-- بحث عن موظف -->
+            <!-- بحث عن موظف (يدعم أعداد كبيرة) -->
             <div class="mb-3">
-                <input type="text" id="search-employee" placeholder="بحث عن موظف..." 
+                <input type="text" id="search-employee" placeholder="بحث بالاسم أو العنوان الوظيفي..." 
                     class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
 
@@ -86,8 +90,13 @@
                 <!-- رأس تفاصيل الموظف -->
                 <div class="flex flex-wrap justify-between items-center border-b border-slate-200 pb-4 mb-4 no-print">
                     <div>
-                        <h2 id="selected-employee-title" class="text-2xl font-bold text-indigo-900">اسم الموظف</h2>
-                        <p class="text-sm text-slate-500">سجل الملاحظات والمتابعة السنوية</p>
+                        <div class="flex items-center gap-3">
+                            <h2 id="selected-employee-title" class="text-2xl font-bold text-indigo-900">اسم الموظف</h2>
+                            <button onclick="openEditEmployeeModal()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded-lg border border-slate-300 transition">
+                                <i class="fa-solid fa-pen-to-square ml-1"></i> تعديل بيانات الموظف
+                            </button>
+                        </div>
+                        <p id="selected-employee-job" class="text-sm text-slate-500 mt-1">العنوان الوظيفي</p>
                     </div>
                     <div class="flex gap-2 mt-2 sm:mt-0">
                         <button onclick="window.print()" class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
@@ -96,11 +105,17 @@
                     </div>
                 </div>
 
-                <!-- نموذج إضافة ملاحظة جديدة -->
+                <!-- نموذج إضافة ملاحظة جديدة مع دعم الكتابة الصوتية -->
                 <form id="add-note-form" class="mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200 no-print">
-                    <h3 class="text-sm font-bold text-slate-700 mb-2">إضافة ملاحظة جديدة</h3>
-                    <textarea id="note-text" rows="3" placeholder="اكتب تفاصيل الملاحظة هنا..." required
-                        class="w-full border border-slate-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-2"></textarea>
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-sm font-bold text-slate-700">إضافة ملاحظة جديدة</h3>
+                        <!-- زر الكتابة الصوتية -->
+                        <button type="button" id="mic-btn" onclick="toggleSpeechRecognition()" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-3 py-1 rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-microphone"></i> <span id="mic-text">الكتابة الصوتية</span>
+                        </button>
+                    </div>
+                    <textarea id="note-text" rows="3" placeholder="اكتب تفاصيل الملاحظة هنا أو استخدم الكتابة الصوتية..." required
+                        class="w-full border border-slate-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-2 leading-relaxed"></textarea>
                     <div class="flex justify-end">
                         <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-semibold transition">
                             <i class="fa-solid fa-save ml-1"></i> حفظ الملاحظة
@@ -112,6 +127,7 @@
                 <div id="print-section" class="flex-grow">
                     <div class="hidden print:block mb-6">
                         <h2 class="text-xl font-bold">سجل ملاحظات الموظف: <span id="print-employee-name"></span></h2>
+                        <p class="text-sm text-gray-600">العنوان الوظيفي: <span id="print-employee-job"></span></p>
                         <p class="text-sm text-gray-600">تاريخ الطباعة: <span id="print-date"></span></p>
                         <hr class="my-2">
                     </div>
@@ -126,6 +142,27 @@
 
     </main>
 
+    <!-- نافذة منبثقة لتعديل بيانات الموظف -->
+    <div id="edit-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50 no-print">
+        <div class="bg-white p-6 rounded-xl w-full max-w-md shadow-xl">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">تعديل بيانات الموظف</h3>
+            <form id="edit-employee-form" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">اسم الموظف</label>
+                    <input type="text" id="edit-name" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">العنوان الوظيفي</label>
+                    <input type="text" id="edit-job" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeEditEmployeeModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-semibold transition">إلغاء</button>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">حفظ التعديلات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- تذييل الصفحة -->
     <footer class="bg-white border-t border-slate-200 py-4 text-center text-sm text-slate-500 no-print">
         <p>نظام إدارة ومتابعة الموظفين &copy; 2026 - متوافق مع الايباد و GitHub Pages</p>
@@ -133,27 +170,93 @@
 
     <!-- سكود البرمجة بلغة جافاسكريبت -->
     <script>
-        // هيكل البيانات الأساسي (يتم تخزينه في LocalStorage)
         let data = JSON.parse(localStorage.getItem('employee_notes_system')) || {
             employees: []
         };
 
         let currentEmployeeId = null;
+        let recognition = null;
+        let isRecording = false;
 
-        // حفظ البيانات في المتصفح
+        // إعداد الكتابة الصوتية (Speech Recognition)
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'ar-SA';
+            recognition.continuous = true;
+            recognition.interimResults = true;
+
+            recognition.onresult = function(event) {
+                let transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    transcript += event.results[i][0].transcript;
+                }
+                const noteInput = document.getElementById('note-text');
+                noteInput.value += ' ' + transcript;
+            };
+
+            recognition.onerror = function(event) {
+                console.error("خطأ في التعرف على الصوت", event.error);
+                stopRecognition();
+            };
+
+            recognition.onend = function() {
+                stopRecognition();
+            };
+        }
+
+        function toggleSpeechRecognition() {
+            if (!recognition) {
+                alert('متصفحك لا يدعم ميزة الكتابة الصوتية، يجدر استخدام متصفح حديث مثل Safari أو Chrome.');
+                return;
+            }
+
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                recognition.start();
+                isRecording = true;
+                document.getElementById('mic-btn').classList.remove('bg-amber-100', 'text-amber-800');
+                document.getElementById('mic-btn').classList.add('bg-red-600', 'text-white', 'animate-pulse');
+                document.getElementById('mic-text').innerText = 'جارٍ الاستماع...';
+            }
+        }
+
+        function stopRecognition() {
+            isRecording = false;
+            const micBtn = document.getElementById('mic-btn');
+            if (micBtn) {
+                micBtn.classList.remove('bg-red-600', 'text-white', 'animate-pulse');
+                micBtn.classList.add('bg-amber-100', 'text-amber-800');
+                document.getElementById('mic-text').innerText = 'الكتابة الصوتية';
+            }
+        }
+
         function saveData() {
             localStorage.setItem('employee_notes_system', JSON.stringify(data));
         }
 
-        // عرض قائمة الموظفين
+        // تنسيق التاريخ بالرقم (مثال: 2026/8/10)
+        function getNumericDate(dateObj = new Date()) {
+            const year = dateObj.getFullYear();
+            const month = dateObj.getMonth() + 1;
+            const day = dateObj.getDate();
+            const timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            return `${year}/${month}/${day} - ${timeStr}`;
+        }
+
+        // عرض قائمة الموظفين (مع دعم البحث الفعال)
         function renderEmployees(filter = '') {
             const listContainer = document.getElementById('employees-list');
             listContainer.innerHTML = '';
 
-            const filtered = data.employees.filter(emp => emp.name.toLowerCase().includes(filter.toLowerCase()));
+            const filtered = data.employees.filter(emp => 
+                emp.name.toLowerCase().includes(filter.toLowerCase()) || 
+                (emp.jobTitle && emp.jobTitle.toLowerCase().includes(filter.toLowerCase()))
+            );
 
             if (filtered.length === 0) {
-                listContainer.innerHTML = '<p class="text-center text-slate-400 py-4 text-sm">لا يوجد موظفين مسجلين</p>';
+                listContainer.innerHTML = '<p class="text-center text-slate-400 py-4 text-sm">لا يوجد موظفون مطابكون للبحث</p>';
                 return;
             }
 
@@ -162,7 +265,10 @@
                 div.className = `p-3 rounded-lg cursor-pointer flex justify-between items-center transition ${currentEmployeeId === emp.id ? 'bg-indigo-50 border-r-4 border-indigo-600 font-bold' : 'hover:bg-slate-50'}`;
                 
                 div.innerHTML = `
-                    <span onclick="selectEmployee(${emp.id})" class="flex-grow text-sm">${emp.name}</span>
+                    <div onclick="selectEmployee(${emp.id})" class="flex-grow">
+                        <div class="text-sm font-semibold text-slate-800">${emp.name}</div>
+                        <div class="text-xs text-slate-500">${emp.jobTitle || 'بدون عنوان'}</div>
+                    </div>
                     <span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full ml-2">${emp.notes.length}</span>
                     <button onclick="deleteEmployee(event, ${emp.id})" class="text-red-400 hover:text-red-600 px-2 text-sm" title="حذف الموظف">
                         <i class="fa-solid fa-trash-can"></i>
@@ -172,7 +278,6 @@
             });
         }
 
-        // اختيار موظف لعرض ملاحظاته
         function selectEmployee(id) {
             currentEmployeeId = id;
             renderEmployees(document.getElementById('search-employee').value);
@@ -184,39 +289,41 @@
             document.getElementById('employee-details').classList.remove('hidden');
             
             document.getElementById('selected-employee-title').innerText = employee.name;
+            document.getElementById('selected-employee-job').innerText = employee.jobTitle || 'بدون عنوان وظيفي';
+            
             document.getElementById('print-employee-name').innerText = employee.name;
-            document.getElementById('print-date').innerText = new Date().toLocaleDateString('ar-SA');
+            document.getElementById('print-employee-job').innerText = employee.jobTitle || '-';
+            document.getElementById('print-date').innerText = getNumericDate();
 
             renderNotes(employee);
         }
 
-        // عرض ملاحظات الموظف المختار
         function renderNotes(employee) {
             const notesContainer = document.getElementById('notes-list');
             notesContainer.innerHTML = '';
 
-            if (employee.notes.length === 0) {
+            if (!employee.notes || employee.notes.length === 0) {
                 notesContainer.innerHTML = '<p class="text-center text-slate-400 py-8 text-sm border border-dashed border-slate-200 rounded-lg">لا توجد ملاحظات مسجلة لهذا الموظف حتى الآن.</p>';
                 return;
             }
 
-            // ترتيب الملاحظات من الأحدث للأقدم
             const sortedNotes = [...employee.notes].reverse();
 
             sortedNotes.forEach((note, index) => {
                 const actualIndex = employee.notes.length - 1 - index;
                 const card = document.createElement('div');
-                card.className = 'bg-slate-50 border border-slate-200 p-4 rounded-xl relative group';
+                card.className = 'bg-slate-50 border border-slate-200 p-4 rounded-xl relative';
                 card.innerHTML = `
                     <div class="flex justify-between items-start mb-2">
                         <span class="text-xs text-indigo-600 font-semibold bg-indigo-50 px-2 py-1 rounded border border-indigo-100">
                             <i class="fa-regular fa-calendar ml-1"></i> ${note.date}
                         </span>
                         <button onclick="deleteNote(${employee.id}, ${actualIndex})" class="text-slate-400 hover:text-red-500 text-sm no-print" title="حذف الملاحظة">
-                            <i class="fa-solid xmark fa-trash"></i>
+                            <i class="fa-solid fa-trash"></i>
                         </button>
                     </div>
-                    <p class="text-slate-700 text-sm whitespace-pre-line leading-relaxed">${note.text}</p>
+                    <!-- تم ضبط الحجم وإتاحة الالتفاف التام للنصوص الطويلة -->
+                    <p class="text-slate-700 text-sm whitespace-pre-line leading-relaxed break-words">${note.text}</p>
                 `;
                 notesContainer.appendChild(card);
             });
@@ -226,50 +333,79 @@
         document.getElementById('add-employee-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const nameInput = document.getElementById('employee-name');
+            const jobInput = document.getElementById('employee-title-job');
+            
             const name = nameInput.value.trim();
+            const jobTitle = jobInput.value.trim();
             
             if (!name) return;
 
             const newEmployee = {
                 id: Date.now(),
                 name: name,
+                jobTitle: jobTitle,
                 notes: []
             };
 
             data.employees.push(newEmployee);
             saveData();
             nameInput.value = '';
+            jobInput.value = '';
             renderEmployees(document.getElementById('search-employee').value);
             selectEmployee(newEmployee.id);
         });
 
-        // إضافة ملاحظة للموظف الحالي
+        // إضافة ملاحظة
         document.getElementById('add-note-form').addEventListener('submit', function(e) {
             e.preventDefault();
             if (!currentEmployeeId) return;
 
-            const noteTextinput = document.getElementById('note-text');
-            const text = noteTextinput.value.trim();
+            const noteTextInput = document.getElementById('note-text');
+            const text = noteTextInput.value.trim();
             if (!text) return;
 
             const employee = data.employees.find(emp => emp.id === currentEmployeeId);
             if (employee) {
-                const now = new Date();
-                const dateStr = now.toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' }) + ' - ' + now.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
-                
                 employee.notes.push({
                     text: text,
-                    date: dateStr
+                    date: getNumericDate()
                 });
 
                 saveData();
-                noteTextinput.value = '';
+                noteTextInput.value = '';
                 renderNotes(employee);
                 renderEmployees(document.getElementById('search-employee').value);
             }
         });
 
-        // حذف موظف
+        // تعديل بيانات الموظف
+        function openEditEmployeeModal() {
+            const employee = data.employees.find(emp => emp.id === currentEmployeeId);
+            if (!employee) return;
+
+            document.getElementById('edit-name').value = employee.name;
+            document.getElementById('edit-job').value = employee.jobTitle || '';
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        function closeEditEmployeeModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+        }
+
+        document.getElementById('edit-employee-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const employee = data.employees.find(emp => emp.id === currentEmployeeId);
+            if (!employee) return;
+
+            employee.name = document.getElementById('edit-name').value.trim();
+            employee.jobTitle = document.getElementById('edit-job').value.trim();
+
+            saveData();
+            closeEditEmployeeModal();
+            selectEmployee(currentEmployeeId);
+            renderEmployees(document.getElementById('search-employee').value);
+        });
+
         function deleteEmployee(e, id) {
             e.stopPropagation();
             if (confirm('هل أنت متأكد من حذف الموظف وجميع ملاحظاته؟')) {
@@ -284,7 +420,6 @@
             }
         }
 
-        // حذف ملاحظة معينة
         function deleteNote(empId, noteIndex) {
             if (confirm('هل أنت متأكد من حذف هذه الملاحظة؟')) {
                 const employee = data.employees.find(emp => emp.id === empId);
@@ -297,13 +432,12 @@
             }
         }
 
-        // البحث الفوري
         document.getElementById('search-employee').addEventListener('input', function(e) {
             renderEmployees(e.target.value);
         });
 
-        // التشغيل الأولي
         renderEmployees();
     </script>
 </body>
 </html>
+ 
