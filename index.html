@@ -399,46 +399,48 @@
 
         // تنفيذ الطباعة بناءً على الفلتر المختار
         function triggerPrint() {
-            const filterVal = document.getElementById('print-filter-type').value;
-            const filterTextMap = {
-                'all': 'كل الملاحظات',
-                'administrative': 'ملاحظات إدارية فقط',
-                'achievement': 'إنجازات فقط',
-                'warning': 'تنبيهات ومخالفات فقط'
-            };
-            document.getElementById('print-type-label').innerText = filterTextMap[filterVal];
+    const filterVal = document.getElementById('print-filter-type').value;
+    const filterTextMap = {
+        'all': 'كل الملاحظات',
+        'administrative': 'ملاحظات إدارية فقط',
+        'achievement': 'إنجازات فقط',
+        'warning': 'تنبيهات ومخالفات فقط'
+    };
+    document.getElementById('print-type-label').innerText = filterTextMap[filterVal];
 
-            const employee = data.employees.find(emp => emp.id === currentEmployeeId);
-            if (employee) {
-                const notesContainer = document.getElementById('notes-list');
-                notesContainer.innerHTML = '';
-                
-                const filteredNotes = filterVal === 'all' ? employee.notes : employee.notes.filter(n => n.category === filterVal);
+    const employee = data.employees.find(emp => emp.id === currentEmployeeId);
+    if (employee) {
+        const notesContainer = document.getElementById('notes-list');
+        const originalContent = notesContainer.innerHTML;
+        
+        const filteredNotes = filterVal === 'all' ? employee.notes : employee.notes.filter(n => n.category === filterVal);
 
-                if (filteredNotes.length === 0) {
-                    notesContainer.innerHTML = '<p class="text-center text-slate-400 py-4 text-sm">لا توجد ملاحظات مطابقة لتلك الفئة.</p>';
-                } else {
-                    const sortedNotes = [...filteredNotes].reverse();
-                    sortedNotes.forEach((note) => {
-                        let catBadge = note.category === 'achievement' ? '🌟 إنجاز' : (note.category === 'warning' ? '⚠️ تنبيه' : '📌 ملاحظة إدارية');
-                        const card = document.createElement('div');
-                        card.className = 'bg-slate-50 border border-slate-200 p-4 rounded-xl mb-3';
-                        card.innerHTML = `
-                            <div class="flex justify-between items-start mb-2">
-                                <span class="text-xs font-semibold">${catBadge} - ${note.date}</span>
-                            </div>
-                            <p class="text-slate-700 text-sm whitespace-pre-line">${note.text}</p>
-                        `;
-                        notesContainer.appendChild(card);
-                    });
-                }
-            }
+        notesContainer.innerHTML = '';
 
-            window.print();
-            
-            // إعادة عرض السجل كاملاً بعد الطباعة
-            if (employee) renderNotes(employee);
+        if (filteredNotes.length === 0) {
+            notesContainer.innerHTML = '<p class="text-center text-slate-400 py-4 text-sm">لا توجد ملاحظات مطابقة لتلك الفئة.</p>';
+        } else {
+            const sortedNotes = [...filteredNotes].reverse();
+            sortedNotes.forEach((note) => {
+                let catBadge = note.category === 'achievement' ? '🌟 إنجاز' : (note.category === 'warning' ? '⚠️ تنبيه' : '📌 ملاحظة إدارية');
+                const card = document.createElement('div');
+                card.className = 'bg-slate-50 border border-slate-200 p-4 rounded-xl mb-3';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs font-semibold">${catBadge} - ${note.date}</span>
+                    </div>
+                    <p class="text-slate-700 text-sm whitespace-pre-line">${note.text}</p>
+                `;
+                notesContainer.appendChild(card);
+            });
         }
+
+        window.print();
+        
+        notesContainer.innerHTML = originalContent;
+        renderNotes(employee);
+    }
+}
 
         document.getElementById('add-employee-form').addEventListener('submit', function(e) {
             e.preventDefault();
