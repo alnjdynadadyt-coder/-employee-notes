@@ -177,7 +177,18 @@
                 </form>
 
                 <hr class="my-4">
-                <h4 class="text-sm font-bold text-slate-700 mb-3">سجل ملاحظات الموظف السابقة:</h4>
+                
+                <!-- أزرار تحديد وتصفية الملاحظات -->
+                <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
+                    <h4 class="text-sm font-bold text-slate-700">سجل ملاحظات الموظف:</h4>
+                    <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs flex-wrap">
+                        <button onclick="filterActiveEmployeeNotes('all')" id="filter-btn-all" class="px-3 py-1.5 rounded-lg font-bold bg-white text-indigo-700 shadow-sm transition">الكل</button>
+                        <button onclick="filterActiveEmployeeNotes('administrative')" id="filter-btn-administrative" class="px-3 py-1.5 rounded-lg font-semibold text-slate-600 hover:bg-white transition">إدارية</button>
+                        <button onclick="filterActiveEmployeeNotes('achievement')" id="filter-btn-achievement" class="px-3 py-1.5 rounded-lg font-semibold text-slate-600 hover:bg-white transition">إنجازات</button>
+                        <button onclick="filterActiveEmployeeNotes('warning')" id="filter-btn-warning" class="px-3 py-1.5 rounded-lg font-semibold text-slate-600 hover:bg-white transition">تنبيهات</button>
+                    </div>
+                </div>
+
                 <div id="notes-list" class="space-y-3 max-h-[40vh] overflow-y-auto"></div>
             </div>
         </div>
@@ -186,12 +197,12 @@
         <div id="section-print" class="hidden space-y-6 max-w-4xl mx-auto">
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 no-print space-y-4">
                 <h2 class="text-lg font-bold text-slate-700 flex items-center gap-2">
-                    <i class="fa-solid fa-print text-indigo-600"></i> إعدادات تقارير الطباعة
+                    <i class="fa-solid fa-print text-indigo-600"></i> إعدادات تقارير الطباعة والاطلاع
                 </h2>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="relative">
-                        <label class="block text-xs font-bold text-slate-600 mb-1.5">اختر الموظف للطباعة:</label>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">اختر الموظف:</label>
                         <div class="relative">
                             <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
                                 <i class="fa-solid fa-magnifying-glass"></i>
@@ -207,9 +218,9 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1.5">نوع الملاحظات للطباعة:</label>
-                        <select id="print-filter-type" class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option value="all">طباعة كل الملاحظات</option>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">نوع الملاحظات للعرض والطباعة:</label>
+                        <select id="print-filter-type" onchange="updateLivePreview()" class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="all">كل الملاحظات</option>
                             <option value="administrative">📌 ملاحظات إدارية فقط</option>
                             <option value="achievement">🌟 إنجازات فقط</option>
                             <option value="warning">⚠️ تنبيهات ومخالفات فقط</option>
@@ -222,6 +233,18 @@
                         <i class="fa-solid fa-print"></i> طباعة التقرير الآن
                     </button>
                 </div>
+            </div>
+
+            <!-- معاينة فورية للملاحظات أسفل الصفحة قبل الطباعة -->
+            <div id="live-preview-container" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 no-print space-y-4">
+                <div class="border-b border-slate-200 pb-3 flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base">معاينة الملاحظات: <span id="preview-emp-name" class="text-indigo-700"></span></h3>
+                        <p class="text-xs text-slate-500">العنوان الوظيفي: <span id="preview-emp-job"></span></p>
+                    </div>
+                    <span id="preview-count-badge" class="bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs px-3 py-1 rounded-full font-bold">0 ملاحظة</span>
+                </div>
+                <div id="live-preview-list" class="space-y-3 max-h-[50vh] overflow-y-auto"></div>
             </div>
 
             <!-- هيكل الطباعة الفعلي (يظهر فقط عند الطباعة) -->
@@ -268,6 +291,7 @@
         let data = JSON.parse(localStorage.getItem('employee_notes_system')) || { employees: [] };
         let currentEmployeeId = null;
         let selectedPrintEmployeeId = null;
+        let currentNotesFilter = 'all';
         let editingEmployeeId = null;
         let recognition = null;
         let isRecording = false;
@@ -422,6 +446,8 @@
                 document.getElementById('note-search-input').value = `${emp.name} (${emp.jobTitle || 'بدون عنوان'})`;
                 document.getElementById('note-dropdown-results').classList.add('hidden');
                 currentEmployeeId = emp.id;
+                currentNotesFilter = 'all';
+                updateFilterButtonsUI();
                 
                 document.getElementById('notes-container-box').classList.remove('hidden');
                 document.getElementById('active-note-emp-name').innerText = emp.name;
@@ -432,6 +458,7 @@
                 document.getElementById('print-search-input').value = `${emp.name} (${emp.jobTitle || 'بدون عنوان'})`;
                 document.getElementById('print-dropdown-results').classList.add('hidden');
                 selectedPrintEmployeeId = emp.id;
+                updateLivePreview();
             }
         }
 
@@ -446,6 +473,29 @@
                 if (box) box.classList.add('hidden');
             }
         });
+
+        // فلترة سجل الملاحظات للموظف الحالي بالأزرار
+        function filterActiveEmployeeNotes(filterType) {
+            currentNotesFilter = filterType;
+            updateFilterButtonsUI();
+            if (currentEmployeeId) {
+                const employee = data.employees.find(emp => emp.id === currentEmployeeId);
+                if (employee) renderNotesList(employee);
+            }
+        }
+
+        function updateFilterButtonsUI() {
+            ['all', 'administrative', 'achievement', 'warning'].forEach(type => {
+                const btn = document.getElementById(`filter-btn-${type}`);
+                if (btn) {
+                    if (currentNotesFilter === type) {
+                        btn.className = "px-3 py-1.5 rounded-lg font-bold bg-white text-indigo-700 shadow-sm transition";
+                    } else {
+                        btn.className = "px-3 py-1.5 rounded-lg font-semibold text-slate-600 hover:bg-white transition";
+                    }
+                }
+            });
+        }
 
         // عرض شبكة الموظفين في قسم إدارة الموظفين
         function renderEmployeesGrid(filter = '') {
@@ -490,14 +540,16 @@
             const list = document.getElementById('notes-list');
             list.innerHTML = '';
 
-            if (!employee.notes || employee.notes.length === 0) {
-                list.innerHTML = '<p class="text-center text-slate-400 py-6 text-sm border border-dashed border-slate-200 rounded-xl">لا توجد ملاحظات مسجلة لهذا الموظف بعد.</p>';
+            const filteredNotes = currentNotesFilter === 'all' ? employee.notes : employee.notes.filter(n => n.category === currentNotesFilter);
+
+            if (!filteredNotes || filteredNotes.length === 0) {
+                list.innerHTML = '<p class="text-center text-slate-400 py-6 text-sm border border-dashed border-slate-200 rounded-xl">لا توجد ملاحظات مطابقة للتصنيف المختار.</p>';
                 return;
             }
 
-            const sortedNotes = [...employee.notes].reverse();
-            sortedNotes.forEach((note, index) => {
-                const actualIndex = employee.notes.length - 1 - index;
+            const sortedNotes = [...filteredNotes].reverse();
+            sortedNotes.forEach((note) => {
+                const actualIndex = employee.notes.indexOf(note);
                 let badge = note.category === 'achievement' ? '<span class="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold">🌟 إنجاز</span>' :
                             note.category === 'warning' ? '<span class="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded font-semibold">⚠️ تنبيه</span>' :
                             '<span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-semibold">📌 ملاحظة إدارية</span>';
@@ -518,6 +570,56 @@
                 `;
                 list.appendChild(card);
             });
+        }
+
+        // المعاينة الحية أسفل قسم الطباعة قبل الطباعة الفعلية
+        function updateLivePreview() {
+            const previewContainer = document.getElementById('live-preview-container');
+            if (!selectedPrintEmployeeId) {
+                previewContainer.classList.add('hidden');
+                return;
+            }
+
+            const employee = data.employees.find(emp => emp.id === selectedPrintEmployeeId);
+            if (!employee) {
+                previewContainer.classList.add('hidden');
+                return;
+            }
+
+            const filterVal = document.getElementById('print-filter-type').value;
+            const filteredNotes = filterVal === 'all' ? employee.notes : employee.notes.filter(n => n.category === filterVal);
+
+            document.getElementById('preview-emp-name').innerText = employee.name;
+            document.getElementById('preview-emp-job').innerText = employee.jobTitle || 'بدون عنوان وظيفي';
+            document.getElementById('preview-count-badge').innerText = `${filteredNotes.length} ملاحظة`;
+
+            const previewList = document.getElementById('live-preview-list');
+            previewList.innerHTML = '';
+
+            if (filteredNotes.length === 0) {
+                previewList.innerHTML = '<p class="text-center text-slate-400 py-6 text-sm border border-dashed border-slate-200 rounded-xl">لا توجد ملاحظات مطابقة للتصنيف المختار لهذا الموظف.</p>';
+            } else {
+                [...filteredNotes].reverse().forEach(note => {
+                    let badge = note.category === 'achievement' ? '<span class="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold">🌟 إنجاز</span>' :
+                                note.category === 'warning' ? '<span class="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded font-semibold">⚠️ تنبيه</span>' :
+                                '<span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-semibold">📌 ملاحظة إدارية</span>';
+
+                    const card = document.createElement('div');
+                    card.className = "bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-2";
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center gap-2">
+                                ${badge}
+                                <span class="text-xs text-slate-500">${note.date}</span>
+                            </div>
+                        </div>
+                        <p class="text-slate-700 text-sm whitespace-pre-line leading-relaxed">${note.text}</p>
+                    `;
+                    previewList.appendChild(card);
+                });
+            }
+
+            previewContainer.classList.remove('hidden');
         }
 
         // تنفيذ الطباعة
@@ -583,7 +685,6 @@
             document.getElementById('employee-name').value = '';
             document.getElementById('employee-title-job').value = '';
             
-            // الانتقال التلقائي لشاشة الملاحظات وتحديد الموظف الجديد فوراً
             switchTab('notes');
             selectEmployee('note', newEmp);
             alert('تم إضافة الموظف بنجاح!');
@@ -655,6 +756,7 @@
                     saveData();
                     renderNotesList(employee);
                     document.getElementById('active-note-count').innerText = `${employee.notes.length} ملاحظة`;
+                    updateLivePreview();
                 }
             }
         }
