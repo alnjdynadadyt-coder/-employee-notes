@@ -39,8 +39,15 @@
             <h1 class="text-2xl font-bold flex items-center gap-2">
                 <i class="fa-solid fa-clipboard-user"></i> نظام ملاحظات الموظفين
             </h1>
-            <div class="text-sm bg-indigo-800 px-3 py-1.5 rounded-lg">
-                <i class="fa-solid fa-cloud-arrow-up ml-1"></i> متوافق مع GitHub Pages & iPad
+            <div class="flex items-center gap-2">
+                <!-- أزرار النسخ الاحتياطي والاستيراد -->
+                <button onclick="exportData()" class="bg-indigo-800 hover:bg-indigo-900 text-xs px-3 py-2 rounded-lg transition flex items-center gap-1.5" title="تصدير النسخة الاحتياطية">
+                    <i class="fa-solid fa-download"></i> تصدير البيانات
+                </button>
+                <label class="bg-indigo-800 hover:bg-indigo-900 text-xs px-3 py-2 rounded-lg transition flex items-center gap-1.5 cursor-pointer" title="استيراد النسخة الاحتياطية">
+                    <i class="fa-solid fa-upload"></i> استيراد
+                    <input type="file" id="import-file" accept=".json" onchange="importData(event)" class="hidden">
+                </label>
             </div>
         </div>
     </header>
@@ -67,7 +74,7 @@
                 </div>
             </form>
 
-            <!-- بحث عن موظف (يدعم أعداد كبيرة) -->
+            <!-- بحث عن موظف -->
             <div class="mb-3">
                 <input type="text" id="search-employee" placeholder="بحث بالاسم أو العنوان الوظيفي..." 
                     class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -105,17 +112,25 @@
                     </div>
                 </div>
 
-                <!-- نموذج إضافة ملاحظة جديدة مع دعم الكتابة الصوتية -->
-                <form id="add-note-form" class="mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200 no-print">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-sm font-bold text-slate-700">إضافة ملاحظة جديدة</h3>
+                <!-- نموذج إضافة ملاحظة جديدة -->
+                <form id="add-note-form" class="mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200 no-print space-y-3">
+                    <div class="flex flex-wrap justify-between items-center gap-2">
+                        <!-- تصنيف الملاحظة بلون وتصميم -->
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs font-bold text-slate-700">تصنيف الملاحظة:</label>
+                            <select id="note-category" class="border border-slate-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                                <option value="administrative">📌 ملاحظة إدارية</option>
+                                <option value="achievement">🌟 إنجاز</option>
+                                <option value="warning">⚠️ تنبيه</option>
+                            </select>
+                        </div>
                         <!-- زر الكتابة الصوتية -->
                         <button type="button" id="mic-btn" onclick="toggleSpeechRecognition()" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-3 py-1 rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
                             <i class="fa-solid fa-microphone"></i> <span id="mic-text">الكتابة الصوتية</span>
                         </button>
                     </div>
                     <textarea id="note-text" rows="3" placeholder="اكتب تفاصيل الملاحظة هنا أو استخدم الكتابة الصوتية..." required
-                        class="w-full border border-slate-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-2 leading-relaxed"></textarea>
+                        class="w-full border border-slate-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 leading-relaxed bg-white"></textarea>
                     <div class="flex justify-end">
                         <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-semibold transition">
                             <i class="fa-solid fa-save ml-1"></i> حفظ الملاحظة
@@ -178,21 +193,18 @@
         let recognition = null;
         let isRecording = false;
 
-        // إعداد الكتابة الصوتية (Speech Recognition)
+        // إعدادیة الكتابة الصوتية مع حل مشكلة التكرار (الاعتماد على النتائج النهائية فقط)
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRecognition();
             recognition.lang = 'ar-SA';
-            recognition.continuous = true;
-            recognition.interimResults = true;
+            recognition.continuous = false; // تعيينه كـ false يمنع الاستماع المستمر المسبب للتكرار المزعج
+            recognition.interimResults = false; // استقبال النص النهائي فقط
 
             recognition.onresult = function(event) {
-                let transcript = '';
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    transcript += event.results[i][0].transcript;
-                }
+                const transcript = event.results[0][0].transcript;
                 const noteInput = document.getElementById('note-text');
-                noteInput.value += ' ' + transcript;
+                noteInput.value += (noteInput.value ? ' ' : '') + transcript;
             };
 
             recognition.onerror = function(event) {
@@ -207,18 +219,23 @@
 
         function toggleSpeechRecognition() {
             if (!recognition) {
-                alert('متصفحك لا يدعم ميزة الكتابة الصوتية، يجدر استخدام متصفح حديث مثل Safari أو Chrome.');
+                alert('متصفحك لا يدعم ميزة الكتابة الصوتية، يرجى استخدام متصفح حديث مثل Safari أو Chrome.');
                 return;
             }
 
             if (isRecording) {
                 recognition.stop();
             } else {
-                recognition.start();
-                isRecording = true;
-                document.getElementById('mic-btn').classList.remove('bg-amber-100', 'text-amber-800');
-                document.getElementById('mic-btn').classList.add('bg-red-600', 'text-white', 'animate-pulse');
-                document.getElementById('mic-text').innerText = 'جارٍ الاستماع...';
+                try {
+                    recognition.start();
+                    isRecording = true;
+                    const micBtn = document.getElementById('mic-btn');
+                    micBtn.classList.remove('bg-amber-100', 'text-amber-800');
+                    micBtn.classList.add('bg-red-600', 'text-white', 'animate-pulse');
+                    document.getElementById('mic-text').innerText = 'جارٍ الاستماع (تحدث الآن)...';
+                } catch(err) {
+                    console.log(err);
+                }
             }
         }
 
@@ -236,7 +253,44 @@
             localStorage.setItem('employee_notes_system', JSON.stringify(data));
         }
 
-        // تنسيق التاريخ بالرقم (مثال: 2026/8/10)
+        // تصدير البيانات كملف JSON
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "employee_notes_backup_" + new Date().toISOString().slice(0,10) + ".json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        // استيراد البيانات من ملف JSON
+        function importData(event) {
+            const fileReader = new FileReader();
+            if (event.target.files[0]) {
+                fileReader.readAsText(event.target.files[0], "UTF-8");
+                fileReader.onload = function(e) {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        if (importedData && importedData.employees) {
+                            data = importedData;
+                            saveData();
+                            renderEmployees();
+                            if (currentEmployeeId) {
+                                selectEmployee(currentEmployeeId);
+                            }
+                            alert('تم استيراد البيانات بنجاح!');
+                        } else {
+                            alert('ملف النسخة الاحتياطية غير صالح.');
+                        }
+                    } catch (error) {
+                        alert('حدث خطأ أثناء قراءة الملف.');
+                    }
+                };
+            }
+        }
+
+        // تنسيق التاريخ الرقمي (مثال: 2026/8/10)
         function getNumericDate(dateObj = new Date()) {
             const year = dateObj.getFullYear();
             const month = dateObj.getMonth() + 1;
@@ -245,7 +299,7 @@
             return `${year}/${month}/${day} - ${timeStr}`;
         }
 
-        // عرض قائمة الموظفين (مع دعم البحث الفعال)
+        // عرض قائمة الموظفين
         function renderEmployees(filter = '') {
             const listContainer = document.getElementById('employees-list');
             listContainer.innerHTML = '';
@@ -311,18 +365,31 @@
 
             sortedNotes.forEach((note, index) => {
                 const actualIndex = employee.notes.length - 1 - index;
+                
+                // تحديد التصنيف والشكل اللوني
+                let catBadge = '';
+                if (note.category === 'achievement') {
+                    catBadge = '<span class="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold">🌟 إنجاز</span>';
+                } else if (note.category === 'warning') {
+                    catBadge = '<span class="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded font-semibold">⚠️ تنبيه</span>';
+                } else {
+                    catBadge = '<span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-semibold">📌 ملاحظة إدارية</span>';
+                }
+
                 const card = document.createElement('div');
                 card.className = 'bg-slate-50 border border-slate-200 p-4 rounded-xl relative';
                 card.innerHTML = `
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="text-xs text-indigo-600 font-semibold bg-indigo-50 px-2 py-1 rounded border border-indigo-100">
-                            <i class="fa-regular fa-calendar ml-1"></i> ${note.date}
-                        </span>
+                    <div class="flex justify-between items-start mb-2 flex-wrap gap-2">
+                        <div class="flex items-center gap-2">
+                            ${catBadge}
+                            <span class="text-xs text-indigo-600 font-semibold bg-indigo-50 px-2 py-1 rounded border border-indigo-100">
+                                <i class="fa-regular fa-calendar ml-1"></i> ${note.date}
+                            </span>
+                        </div>
                         <button onclick="deleteNote(${employee.id}, ${actualIndex})" class="text-slate-400 hover:text-red-500 text-sm no-print" title="حذف الملاحظة">
                             <i class="fa-solid fa-trash"></i>
                         </button>
                     </div>
-                    <!-- تم ضبط الحجم وإتاحة الالتفاف التام للنصوص الطويلة -->
                     <p class="text-slate-700 text-sm whitespace-pre-line leading-relaxed break-words">${note.text}</p>
                 `;
                 notesContainer.appendChild(card);
@@ -355,12 +422,13 @@
             selectEmployee(newEmployee.id);
         });
 
-        // إضافة ملاحظة
+        // إضافة ملاحظة مع التصنيف
         document.getElementById('add-note-form').addEventListener('submit', function(e) {
             e.preventDefault();
             if (!currentEmployeeId) return;
 
             const noteTextInput = document.getElementById('note-text');
+            const categoryInput = document.getElementById('note-category');
             const text = noteTextInput.value.trim();
             if (!text) return;
 
@@ -368,6 +436,7 @@
             if (employee) {
                 employee.notes.push({
                     text: text,
+                    category: categoryInput.value,
                     date: getNumericDate()
                 });
 
@@ -440,4 +509,3 @@
     </script>
 </body>
 </html>
- 
