@@ -110,7 +110,9 @@
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </div>
                     <input type="text" id="note-search-input" placeholder="اكتب اسم الموظف للبحث السريع..." 
-                        oninput="filterEmployeeDropdown('note')" autocomplete="off"
+                        oninput="filterEmployeeDropdown('note')" 
+                        onfocus="filterEmployeeDropdown('note')" 
+                        autocomplete="off"
                         class="w-full border border-slate-300 rounded-xl pr-11 pl-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-indigo-900">
                     
                     <!-- قائمة النتائج المنسدلة للبحث الفوري -->
@@ -195,7 +197,9 @@
                                 <i class="fa-solid fa-magnifying-glass"></i>
                             </div>
                             <input type="text" id="print-search-input" placeholder="ابحث عن اسم الموظف..." 
-                                oninput="filterEmployeeDropdown('print')" autocomplete="off"
+                                oninput="filterEmployeeDropdown('print')" 
+                                onfocus="filterEmployeeDropdown('print')" 
+                                autocomplete="off"
                                 class="w-full border border-slate-300 rounded-xl pr-11 pl-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-indigo-900">
                             
                             <!-- قائمة النتائج المنسدلة للطباعة -->
@@ -388,17 +392,6 @@
             const resultsBox = document.getElementById(resultsId);
 
             resultsBox.innerHTML = '';
-
-            if (!query) {
-                resultsBox.classList.add('hidden');
-                if (type === 'note' && currentEmployeeId) {
-                    currentEmployeeId = null;
-                    document.getElementById('notes-container-box').classList.add('hidden');
-                } else if (type === 'print') {
-                    selectedPrintEmployeeId = null;
-                }
-                return;
-            }
 
             const filtered = data.employees.filter(emp => 
                 emp.name.toLowerCase().includes(query) || 
@@ -675,4 +668,3 @@
     </script>
 </body>
 </html>
- 
