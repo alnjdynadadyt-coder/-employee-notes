@@ -100,13 +100,22 @@
 
         <!-- 2. شاشة الملاحظات -->
         <div id="section-notes" class="hidden space-y-6 max-w-4xl mx-auto">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 relative">
                 <h2 class="text-lg font-bold text-slate-700 mb-3 flex items-center gap-2">
-                    <i class="fa-solid fa-hand-pointer text-indigo-600"></i> الخطوة الأولى: اختر الموظف المستهدف
+                    <i class="fa-solid fa-hand-pointer text-indigo-600"></i> الخطوة الأولى: ابحث واختر الموظف المستهدف
                 </h2>
-                <select id="select-note-employee" onchange="onSelectNoteEmployee(this.value)" class="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-indigo-900">
-                    <option value="">-- اضغط هنا لاختيار موظف من القائمة --</option>
-                </select>
+                
+                <div class="relative">
+                    <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                    <input type="text" id="note-search-input" placeholder="اكتب اسم الموظف للبحث السريع..." 
+                        oninput="filterEmployeeDropdown('note')" autocomplete="off"
+                        class="w-full border border-slate-300 rounded-xl pr-11 pl-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-indigo-900">
+                    
+                    <!-- قائمة النتائج المنسدلة للبحث الفوري -->
+                    <div id="note-dropdown-results" class="hidden absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto"></div>
+                </div>
             </div>
 
             <!-- نموذج إضافة الملاحظة (يظهر بعد اختيار الموظف) -->
@@ -179,11 +188,19 @@
                 </h2>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1.5">اختر الموظف:</label>
-                        <select id="select-print-employee" class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-indigo-900">
-                            <option value="">-- اختر موظفاً للطباعة --</option>
-                        </select>
+                    <div class="relative">
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">اختر الموظف للطباعة:</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </div>
+                            <input type="text" id="print-search-input" placeholder="ابحث عن اسم الموظف..." 
+                                oninput="filterEmployeeDropdown('print')" autocomplete="off"
+                                class="w-full border border-slate-300 rounded-xl pr-11 pl-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-indigo-900">
+                            
+                            <!-- قائمة النتائج المنسدلة للطباعة -->
+                            <div id="print-dropdown-results" class="hidden absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto"></div>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-1.5">نوع الملاحظات للطباعة:</label>
@@ -246,6 +263,7 @@
     <script>
         let data = JSON.parse(localStorage.getItem('employee_notes_system')) || { employees: [] };
         let currentEmployeeId = null;
+        let selectedPrintEmployeeId = null;
         let editingEmployeeId = null;
         let recognition = null;
         let isRecording = false;
@@ -314,11 +332,9 @@
             } else if (tabName === 'notes') {
                 document.getElementById('section-notes').classList.remove('hidden');
                 document.getElementById('tab-notes-btn').className = "px-4 py-2 rounded-lg text-sm font-semibold transition bg-white text-indigo-700 shadow-sm flex items-center gap-2";
-                populateSelectDropdowns();
             } else if (tabName === 'print') {
                 document.getElementById('section-print').classList.remove('hidden');
                 document.getElementById('tab-print-btn').className = "px-4 py-2 rounded-lg text-sm font-semibold transition bg-white text-indigo-700 shadow-sm flex items-center gap-2";
-                populateSelectDropdowns();
             }
         }
 
@@ -352,7 +368,6 @@
                             data = importedData;
                             saveData();
                             renderEmployeesGrid();
-                            populateSelectDropdowns();
                             alert('تم استيراد البيانات بنجاح!');
                         } else { alert('ملف النسخة الاحتياطية غير صالح.'); }
                     } catch (error) { alert('خطأ في قراءة الملف.'); }
@@ -365,24 +380,79 @@
             return `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()} - ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
         }
 
-        // تحديث القوائم المنسدلة للموظفين
-        function populateSelectDropdowns() {
-            const noteSelect = document.getElementById('select-note-employee');
-            const printSelect = document.getElementById('select-print-employee');
-            
-            let optionsHTML = '<option value="">-- اضغط لاختيار موظف --</option>';
-            data.employees.forEach(emp => {
-                optionsHTML += `<option value="${emp.id}">${emp.name} (${emp.jobTitle || 'بدون عنوان'})</option>`;
+        // نظام البحث والفلترة الفورية للقوائم
+        function filterEmployeeDropdown(type) {
+            const inputId = type === 'note' ? 'note-search-input' : 'print-search-input';
+            const resultsId = type === 'note' ? 'note-dropdown-results' : 'print-dropdown-results';
+            const query = document.getElementById(inputId).value.toLowerCase().trim();
+            const resultsBox = document.getElementById(resultsId);
+
+            resultsBox.innerHTML = '';
+
+            if (!query) {
+                resultsBox.classList.add('hidden');
+                if (type === 'note' && currentEmployeeId) {
+                    currentEmployeeId = null;
+                    document.getElementById('notes-container-box').classList.add('hidden');
+                } else if (type === 'print') {
+                    selectedPrintEmployeeId = null;
+                }
+                return;
+            }
+
+            const filtered = data.employees.filter(emp => 
+                emp.name.toLowerCase().includes(query) || 
+                (emp.jobTitle && emp.jobTitle.toLowerCase().includes(query))
+            );
+
+            if (filtered.length === 0) {
+                resultsBox.innerHTML = '<div class="p-3 text-sm text-slate-400 text-center">لا توجد نتائج مطابقة</div>';
+                resultsBox.classList.remove('hidden');
+                return;
+            }
+
+            filtered.forEach(emp => {
+                const item = document.createElement('div');
+                item.className = "p-3 hover:bg-indigo-50 cursor-pointer border-b border-slate-100 last:border-b-0 text-sm transition";
+                item.innerHTML = `<span class="font-bold text-slate-800">${emp.name}</span> <span class="text-xs text-slate-500 block">(${emp.jobTitle || 'بدون عنوان'})</span>`;
+                item.onclick = function() {
+                    selectEmployee(type, emp);
+                };
+                resultsBox.appendChild(item);
             });
 
-            noteSelect.innerHTML = optionsHTML;
-            printSelect.innerHTML = optionsHTML;
+            resultsBox.classList.remove('hidden');
+        }
 
-            if (currentEmployeeId) {
-                noteSelect.value = currentEmployeeId;
-                printSelect.value = currentEmployeeId;
+        function selectEmployee(type, emp) {
+            if (type === 'note') {
+                document.getElementById('note-search-input').value = `${emp.name} (${emp.jobTitle || 'بدون عنوان'})`;
+                document.getElementById('note-dropdown-results').classList.add('hidden');
+                currentEmployeeId = emp.id;
+                
+                document.getElementById('notes-container-box').classList.remove('hidden');
+                document.getElementById('active-note-emp-name').innerText = emp.name;
+                document.getElementById('active-note-emp-job').innerText = emp.jobTitle || 'بدون عنوان وظيفي';
+                document.getElementById('active-note-count').innerText = `${emp.notes.length} ملاحظة`;
+                renderNotesList(emp);
+            } else if (type === 'print') {
+                document.getElementById('print-search-input').value = `${emp.name} (${emp.jobTitle || 'بدون عنوان'})`;
+                document.getElementById('print-dropdown-results').classList.add('hidden');
+                selectedPrintEmployeeId = emp.id;
             }
         }
+
+        // إغلاق قوائم البحث عند النقر خارجها
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#note-search-input') && !e.target.closest('#note-dropdown-results')) {
+                const box = document.getElementById('note-dropdown-results');
+                if (box) box.classList.add('hidden');
+            }
+            if (!e.target.closest('#print-search-input') && !e.target.closest('#print-dropdown-results')) {
+                const box = document.getElementById('print-dropdown-results');
+                if (box) box.classList.add('hidden');
+            }
+        });
 
         // عرض شبكة الموظفين في قسم إدارة الموظفين
         function renderEmployeesGrid(filter = '') {
@@ -423,25 +493,6 @@
             });
         }
 
-        // اختيار موظف في قسم الملاحظات
-        function onSelectNoteEmployee(id) {
-            if (!id) {
-                currentEmployeeId = null;
-                document.getElementById('notes-container-box').classList.add('hidden');
-                return;
-            }
-            currentEmployeeId = parseInt(id);
-            const employee = data.employees.find(emp => emp.id === currentEmployeeId);
-            if (!employee) return;
-
-            document.getElementById('notes-container-box').classList.remove('hidden');
-            document.getElementById('active-note-emp-name').innerText = employee.name;
-            document.getElementById('active-note-emp-job').innerText = employee.jobTitle || 'بدون عنوان وظيفي';
-            document.getElementById('active-note-count').innerText = `${employee.notes.length} ملاحظة`;
-
-            renderNotesList(employee);
-        }
-
         function renderNotesList(employee) {
             const list = document.getElementById('notes-list');
             list.innerHTML = '';
@@ -478,13 +529,12 @@
 
         // تنفيذ الطباعة
         function triggerPrint() {
-            const selectedPrintId = document.getElementById('select-print-employee').value;
-            if (!selectedPrintId) {
-                alert('الرجاء اختيار موظف للطباعة أولاً.');
+            if (!selectedPrintEmployeeId) {
+                alert('الرجاء اختيار موظف للطباعة أولاً من خلال حقل البحث.');
                 return;
             }
 
-            const employee = data.employees.find(emp => emp.id === parseInt(selectedPrintId));
+            const employee = data.employees.find(emp => emp.id === selectedPrintEmployeeId);
             if (!employee) return;
 
             const filterVal = document.getElementById('print-filter-type').value;
@@ -540,10 +590,9 @@
             document.getElementById('employee-name').value = '';
             document.getElementById('employee-title-job').value = '';
             
-            // الانتقال التلقائي لشاشة الملاحظات لاختيار الموظف الجديد مباشرة
+            // الانتقال التلقائي لشاشة الملاحظات وتحديد الموظف الجديد فوراً
             switchTab('notes');
-            document.getElementById('select-note-employee').value = newEmp.id;
-            onSelectNoteEmployee(newEmp.id);
+            selectEmployee('note', newEmp);
             alert('تم إضافة الموظف بنجاح!');
         });
 
@@ -561,7 +610,8 @@
                 employee.notes.push({ text, category, date: getNumericDate() });
                 saveData();
                 document.getElementById('note-text').value = '';
-                onSelectNoteEmployee(currentEmployeeId);
+                renderNotesList(employee);
+                document.getElementById('active-note-count').innerText = `${employee.notes.length} ملاحظة`;
             }
         });
 
@@ -588,7 +638,6 @@
                 saveData();
                 closeEditModal();
                 renderEmployeesGrid();
-                populateSelectDropdowns();
             }
         });
 
@@ -597,9 +646,9 @@
                 data.employees = data.employees.filter(e => e.id !== id);
                 saveData();
                 renderEmployeesGrid();
-                populateSelectDropdowns();
                 if (currentEmployeeId === id) {
                     currentEmployeeId = null;
+                    document.getElementById('note-search-input').value = '';
                     document.getElementById('notes-container-box').classList.add('hidden');
                 }
             }
@@ -611,7 +660,8 @@
                 if (employee) {
                     employee.notes.splice(noteIndex, 1);
                     saveData();
-                    onSelectNoteEmployee(empId);
+                    renderNotesList(employee);
+                    document.getElementById('active-note-count').innerText = `${employee.notes.length} ملاحظة`;
                 }
             }
         }
@@ -625,3 +675,4 @@
     </script>
 </body>
 </html>
+ 
